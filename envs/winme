@@ -1,0 +1,108 @@
+###VPC Below - note: ami-047a3667 is an amazon marketplace AMI for VPC Nat infrastructure
+subnets_hash:
+    name: winme
+vpc_cidr_block: 10.0.0.0/22
+vpc_subnets:
+    - cidr: 10.0.0.0/24
+      az: ap-southeast-1a
+      resource_tags: { "Environment":"prod", "Tier" : "out" }
+    - cidr: 10.0.1.0/24
+      az: ap-southeast-1a
+      resource_tags: { "Environment":"prod", "Tier" : "app" }
+    - cidr: 10.0.2.0/24
+      az: ap-southeast-1a
+      resource_tags: { "Environment":"prod", "Tier" : "db" }
+vpc_internet_gateway: "yes"
+vpc_route_tables:
+    - subnets:
+       - 10.0.0.0/24
+      routes:
+       - dest: 0.0.0.0/0
+         gw: igw
+vpc_public_subnet: 10.0.0.0/24
+vpc_nat_instance_id: ami-047a3667
+vpc_nat_instance_type: t1.micro
+vpc_ops_group:
+    name: winme_ops_sg
+    desc: the security group for operator
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+
+vpc_app_group:
+    name: winme_app_sg
+    desc: the security group for app
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 10.0.0.0/24
+
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 10.0.0.0/24
+
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 10.0.0.0/24
+
+vpc_db_group:
+    name: winme_db_sg
+    desc: the security group for db
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 10.0.0.0/24
+
+      - proto: tcp
+        from_port: 27017
+        to_port: 27017
+        cidr_ip: 10.0.1.0/24
+
+      - proto: tcp
+        from_port: 27017
+        to_port: 27017
+        cidr_ip: 10.0.0.0/24
+
+vpc_instances:
+  - instance_type: m3.large
+    image: ami-c63d6aa5
+    keypair: devops
+    group: winme_db_sg
+    volumes:
+      - device_name: /dev/xvda
+        volume_type: gp2
+        volume_size: 8
+    subnet: 10.0.2.0/24
+    instance_tags: 
+        Name: mongo_db
+    exact_count: 1
+    count_tag: 
+        Name: mongo_db
+
+  - instance_type: m3.large
+    image: ami-c63d6aa5
+    keypair: devops
+    group: winme_app_sg
+    subnet: 10.0.1.0/24
+    instance_tags: 
+        Name: backend_app
+    exact_count: 1
+    count_tag: 
+        Name: backend_app
+
+  - instance_type: m3.medium
+    image: ami-c63d6aa5
+    keypair: devops
+    group: winme_app_sg
+    subnet: 10.0.1.0/24
+    instance_tags: 
+        Name: frontend_app
+    exact_count: 1
+    count_tag: 
+        Name: frontend_app
